@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>pocketplan</title>
+  <style>
+    :root {
+      --teal-dark: #0f4d4a;
+      --teal-card: #135b57;
+      --mint-light: #e6f4f1;
+      --mint-badge: #d4ede8;
+      --text-dark: #102a29;
+      --green-tick: #0f6d5f;
+      --red-trash: #b33a3a;
+      --bg: #f9fbfb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text-dark); padding-bottom: 40px; }
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
+    .logo-title { font-weight: 800; font-size: 20px; color: var(--teal-dark); }
+    .logo-sub { font-size: 11px; color: #777; }
+    .badge-device { font-size: 11px; color: #2e7d32; font-weight: 600; }
+    .salary-panel { background: var(--teal-dark); margin: 0 16px 16px; border-radius: 20px; padding: 20px; color: white; }
+    .salary-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; font-weight: 600; }
+    .salary-heading { font-size: 22px; font-weight: bold; margin-bottom: 12px; }
+    .salary-box { background: white; border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .salary-amount { font-size: 26px; font-weight: 800; color: var(--text-dark); }
+    .salary-box input { font-size: 24px; font-weight: 800; border: none; outline: none; width: 140px; }
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 18px; }
+    .period-row { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+    .period-card { background: var(--teal-card); flex: 1; border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+    .period-card span { display: block; font-size: 10px; opacity: 0.7; }
+    .period-card strong { font-size: 13px; font-weight: 600; }
+    .btn-outline { margin: 0 16px 16px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #ccc; background: white; border-radius: 12px; padding: 10px; font-weight: 600; cursor: pointer; width: calc(100% - 32px); }
+    .section-title { font-size: 20px; font-weight: 800; margin: 0 16px 10px; }
+    .categories { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 12px; }
+    .cat-pill { background: #f0f4f4; border: none; padding: 8px 14px; border-radius: 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .cat-pill.active { background: var(--mint-badge); font-weight: bold; }
+    .cat-count { background: white; border-radius: 8px; padding: 2px 6px; font-size: 10px; }
+    .expense-input-card { background: var(--mint-light); margin: 0 16px 12px; border-radius: 14px; padding: 14px; display: none; }
+    .expense-input-card.show { display: block; }
+    .inputs { display: flex; gap: 10px; margin-bottom: 10px; }
+    .field { flex: 1; display: flex; flex-direction: column; }
+    .field label { font-size: 11px; color: #555; margin-bottom: 4px; }
+    .field input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; outline: none; }
+    .autocomplete-list { background: white; border: 1px solid #ddd; border-radius: 6px; position: absolute; width: 55%; z-index: 10; display: none; }
+    .autocomplete-item { padding: 8px; font-size: 13px; cursor: pointer; border-bottom: 1px solid #eee; }
+    .btn-add { background: var(--teal-dark); color: white; border: none; border-radius: 12px; padding: 12px; margin: 0 16px 16px; font-weight: 600; cursor: pointer; display: block; width: calc(100% - 32px); text-align: center; }
+    .expense-list { margin: 0 16px 16px; background: white; border-radius: 12px; border: 1px solid #eee; }
+    .expense-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f0f0f0; }
+    .expense-item:last-child { border-bottom: none; }
+    .stat-card { background: var(--mint-light); border-radius: 16px; padding: 16px; margin: 0 16px 10px; display: flex; align-items: center; gap: 14px; }
+    .stat-icon { background: white; border-radius: 10px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .stat-card span { font-size: 11px; color: #666; display: block; }
+    .stat-card strong { font-size: 20px; font-weight: 800; color: var(--teal-dark); }
+    .privacy { text-align: center; font-size: 11px; color: #888; margin-top: 16px; }
+    .modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.5); z-index: 99; align-items: flex-end; }
+    .modal.show { display: flex; }
+    .modal-content { background: white; width: 100%; border-radius: 20px 20px 0 0; padding: 20px; max-height: 80vh; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="logo-title">pocketplan</div>
+      <div class="logo-sub">Your money, in focus</div>
+    </div>
+    <div class="badge-device">● On device</div>
+  </div>
+
+  <div class="salary-panel">
+    <div class="salary-label">Available to spend</div>
+    <div class="salary-heading">My salary</div>
+    <div class="salary-box">
+      <div id="salary-view" style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+        <span class="salary-amount" id="salary-display">£0.00</span>
+        <button class="btn-icon" onclick="startEditSalary()">✏️</button>
+      </div>
+      <div id="salary-edit" style="display:none; justify-content:space-between; width:100%; align-items:center;">
+        <span>£ <input type="number" step="0.01" id="salary-input"></span>
+        <button class="btn-icon" style="color:var(--green-tick);" onclick="saveSalary()">✓</button>
+      </div>
+    </div>
+
+    <div class="period-row">
+      <div class="period-card" onclick="editPeriodDates()">
+        <span>From</span>
+        <strong id="date-from">26 Mar 2027</strong>
+      </div>
+      <span>→</span>
+      <div class="period-card" onclick="editPeriodDates()">
+        <span>To</span>
+        <strong id="date-to">26 Apr 2027</strong>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-outline" onclick="openPeriodsModal()">📅 Browse periods</button>
+
+  <div class="section-title">Spending breakdown</div>
+
+  <div class="categories" id="cat-tabs"></div>
+
+  <!-- Inline Expense Input -->
+  <div class="expense-input-card" id="expense-card">
+    <div class="inputs">
+      <div class="field" style="position:relative;">
+        <label>Item name</label>
+        <input type="text" id="exp-name" placeholder="Item or shop" autocomplete="off" oninput="handleShopInput(this.value)">
+        <div id="suggestions" class="autocomplete-list"></div>
+      </div>
+      <div class="field" style="max-width: 110px;">
+        <label>Price</label>
+        <input type="number" step="0.01" id="exp-price" placeholder="£ 0.00">
+      </div>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color:#666;">Tap the tick to save</span>
+      <div style="display:flex; gap:10px;">
+        <button class="btn-icon" onclick="toggleExpenseCard(false)">✕</button>
+        <button class="btn-icon" style="background:var(--green-tick); color:white; border-radius:6px; padding:4px 10px;" onclick="saveExpense()">✓</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-add" id="btn-show-add" onclick="toggleExpenseCard(true)">+ Add expense</button>
+
+  <div class="expense-list" id="expense-list"></div>
+
+  <div class="stat-card">
+    <div class="stat-icon">↓</div>
+    <div>
+      <span>Total spent</span>
+      <strong id="total-spent">£0.00</strong>
+      <span>Across all categories</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon">↑</div>
+    <div>
+      <span>Money remaining</span>
+      <strong id="money-remaining">£0.00</strong>
+      <span id="salary-status">Set your salary to start planning</span>
+    </div>
+  </div>
+
+  <div class="privacy">🛡️ Private by default. Saved only on this device.</div>
+
+  <!-- Periods Modal -->
+  <div class="modal" id="modal-periods">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3>Your spending periods</h3>
+        <button class="btn-icon" onclick="closePeriodsModal()">✕</button>
+      </div>
+      <div id="periods-list"></div>
+      <button class="btn-add" style="margin: 16px 0 0; width:100%;" onclick="createNewPeriod()">+ Start a new period</button>
+    </div>
+  </div>
+
+  <script>
+    // --- 100% LOCAL DATA STORAGE ---
+    const DB_KEY = 'pocketplan_data';
+    let appData = JSON.parse(localStorage.getItem(DB_KEY)) || {
+      periods: [{ id: 1, from: '2027-03-26', to: '2027-04-26', salary: 0, expenses: [] }],
+      activePeriodId: 1,
+      categories: ['General spending', 'Shopping', 'Bills'],
+      rememberedShops: ['Asda', 'Tesco', 'Sainsburys', 'Amazon']
+    };
+
+    let activeCategory = 'General spending';
+
+    function saveData() {
+      localStorage.setItem(DB_KEY, JSON.stringify(appData));
+      render();
+    }
+
+    function getActivePeriod() {
+      return appData.periods.find(p => p.id === appData.activePeriodId) || appData.periods[0];
+    }
+
+    function formatDate(str) {
+      const d = new Date(str);
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // --- SALARY INLINE EDIT ---
+    function startEditSalary() {
+      document.getElementById('salary-view').style.display = 'none';
+      document.getElementById('salary-edit').style.display = 'flex';
+      const input = document.getElementById('salary-input');
+      input.value = getActivePeriod().salary || '';
+      input.focus();
+    }
+
+    function saveSalary() {
+      const val = parseFloat(document.getElementById('salary-input').value) || 0;
+      getActivePeriod().salary = val;
+      document.getElementById('salary-view').style.display = 'flex';
+      document.getElementById('salary-edit').style.display = 'none';
+      saveData();
+    }
+
+    // --- EXPENSES & OFFLINE AUTOCOMPLETE ---
+    function toggleExpenseCard(show) {
+      document.getElementById('expense-card').classList.toggle('show', show);
+      document.getElementById('btn-show-add').style.display = show ? 'none' : 'block';
+      if (show) {
+        document.getElementById('exp-name').value = '';
+        document.getElementById('exp-price').value = '';
+      }
+    }
+
+    function handleShopInput(val) {
+      const box = document.getElementById('suggestions');
+      if (!val || val.length < 2) { box.style.display = 'none'; return; }
+      const matches = appData.rememberedShops.filter(s => s.toLowerCase().startsWith(val.toLowerCase()));
+      if (matches.length === 0) { box.style.display = 'none'; return; }
+      box.innerHTML = matches.map(m => `<div class="autocomplete-item" onclick="selectSuggestion('${m}')">${m}</div>`).join('');
+      box.style.display = 'block';
+    }
+
+    function selectSuggestion(name) {
+      document.getElementById('exp-name').value = name;
+      document.getElementById('suggestions').style.display = 'none';
+    }
+
+    function saveExpense() {
+      const name = document.getElementById('exp-name').value.trim();
+      const amount = parseFloat(document.getElementById('exp-price').value) || 0;
+      if (!name || amount <= 0) return;
+
+      const p = getActivePeriod();
+      p.expenses.push({ id: Date.now(), category: activeCategory, name, amount });
+
+      if (!appData.rememberedShops.includes(name)) {
+        appData.rememberedShops.push(name);
+      }
+
+      toggleExpenseCard(false);
+      saveData();
+    }
+
+    function deleteExpense(id) {
+      if (!confirm('Delete this expense?')) return;
+      const p = getActivePeriod();
+      p.expenses = p.expenses.filter(e => e.id !== id);
+      saveData();
+    }
+
+    // --- PERIODS MODAL & DATES ---
+    function openPeriodsModal() {
+      document.getElementById('modal-periods').classList.add('show');
+    }
+    function closePeriodsModal() {
+      document.getElementById('modal-periods').classList.remove('show');
+    }
+
+    function createNewPeriod() {
+      const p = getActivePeriod();
+      const nextId = Date.now();
+      const from = p.to;
+      const nextDate = new Date(from);
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      const to = nextDate.toISOString().split('T')[0];
+
+      appData.periods.unshift({ id: nextId, from, to, salary: p.salary, expenses: [] });
+      appData.activePeriodId = nextId;
+      closePeriodsModal();
+      saveData();
+    }
+
+    function deletePeriod(id, e) {
+      e.stopPropagation();
+      if (appData.periods.length <= 1) { alert("You must keep at least one spending period."); return; }
+      if (!confirm('Are you sure you want to delete this period?')) return;
+      appData.periods = appData.periods.filter(p => p.id !== id);
+      appData.activePeriodId = appData.periods[0].id;
+      saveData();
+    }
+
+    function editPeriodDates() {
+      const p = getActivePeriod();
+      const newFrom = prompt("Enter Start Date (YYYY-MM-DD):", p.from);
+      if (!newFrom) return;
+      const newTo = prompt("Enter End Date (YYYY-MM-DD):", p.to);
+      if (!newTo) return;
+      p.from = newFrom;
+      p.to = newTo;
+      saveData();
+    }
+
+    // --- RENDER SCREEN ---
+    function render() {
+      const p = getActivePeriod();
+      document.getElementById('salary-display').textContent = `£${p.salary.toFixed(2)}`;
+      document.getElementById('date-from').textContent = formatDate(p.from);
+      document.getElementById('date-to').textContent = formatDate(p.to);
+
+      // Render Categories
+      const catContainer = document.getElementById('cat-tabs');
+      catContainer.innerHTML = appData.categories.map(cat => {
+        const total = p.expenses.filter(e => e.category === cat).reduce((s, e) => s + e.amount, 0);
+        return `<button class="cat-pill ${cat === activeCategory ? 'active' : ''}" onclick="activeCategory='${cat}'; render();">
+          ${cat} <span class="cat-count">£${total.toFixed(0)}</span>
+        </button>`;
+      }).join('');
+
+      // Render Expenses
+      const listContainer = document.getElementById('expense-list');
+      const filtered = p.expenses.filter(e => e.category === activeCategory);
+      if (filtered.length === 0) {
+        listContainer.innerHTML = '<div style="padding:16px; font-size:13px; color:#888; text-align:center;">No expenses yet in this category</div>';
+      } else {
+        listContainer.innerHTML = filtered.map(e => `
+          <div class="expense-item">
+            <div><strong>${e.name}</strong></div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span>£${e.amount.toFixed(2)}</span>
+              <button class="btn-icon" style="color:var(--red-trash);" onclick="deleteExpense(${e.id})">🗑</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Calculations
+      const totalSpent = p.expenses.reduce((s, e) => s + e.amount, 0);
+      const remaining = p.salary - totalSpent;
+
+      document.getElementById('total-spent').textContent = `£${totalSpent.toFixed(2)}`;
+      document.getElementById('money-remaining').textContent = `£${remaining.toFixed(2)}`;
+      document.getElementById('salary-status').textContent = p.salary > 0 ? 'Payday to payday' : 'Set your salary to start planning';
+
+      // Periods Modal list
+      const pList = document.getElementById('periods-list');
+      pList.innerHTML = appData.periods.map(item => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:${item.id === p.id ? 'var(--mint-badge)' : '#f5f5f5'}; margin-bottom:8px; border-radius:10px; cursor:pointer;" onclick="appData.activePeriodId=${item.id}; closePeriodsModal(); saveData();">
+          <div>
+            <strong>${formatDate(item.from)} – ${formatDate(item.to)}</strong>
+            <div style="font-size:11px; color:#666;">£${item.salary.toFixed(2)} salary • ${item.expenses.length} expenses</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${item.id === p.id ? '✓' : ''}
+            <button class="btn-icon" style="color:var(--red-trash);" onclick="deletePeriod(${item.id}, event)">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    render();
+  </script>
+</body>
+</html>
